@@ -6,6 +6,8 @@ Extract healthcare data from Oracle XE, write it as Iceberg tables to cloud obje
 
 ## BigQuery Omni — No-Copy Architecture
 
+> Full visual reference: [bigquery_omni_generic.pdf](bigquery_omni_generic.pdf)
+
 How GCP BigQuery queries Oracle data in your cloud — without moving a single byte to Google Cloud.
 
 ```

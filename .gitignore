@@ -6,9 +6,6 @@ __pycache__/
 venv/
 .venv/
 
-# PDF assets (binary, not source)
-*.pdf
-
 # AWS credentials
 .aws/
 
