@@ -8,56 +8,29 @@ Extract healthcare data from Oracle XE, write it as Iceberg tables to cloud obje
 
 > Full visual reference: [bigquery_omni_generic.pdf](bigquery_omni_generic.pdf)
 
+![BigQuery Omni — No-Copy Architecture](images/architecture_no_copy.png)
+
 How GCP BigQuery queries Oracle data in your cloud — without moving a single byte to Google Cloud.
 
-```
-AWS or Azure
-─────────────────────────────────────────────────────────────────────
-① Oracle Database (EC2 t3.small / Azure VM)
-     Source of truth: members · claims · prior_auth
-
-② oracle_to_iceberg.py  (PyIceberg)
-     Extracts rows → converts to Parquet → creates Iceberg snapshots
-
-③ Object Storage  (S3 or Azure Blob)
-     healthcare/members/data.parquet
-     healthcare/claims/data.parquet
-
-④ Iceberg REST Catalog
-     Schema + snapshot metadata
-     Points to Parquet locations · Backed by PostgreSQL
-
-⑤ BigQuery Omni Compute  (runs INSIDE your cloud VPC)
-     Reads Parquet directly · Never sends raw data to GCP
-─────────────────────────────────────────────────────────────────────
-                    ← SQL query only         Results only →
-─────────────────────────────────────────────────────────────────────
-Google Cloud                          NO raw data crosses boundary
-─────────────────────────────────────────────────────────────────────
-⑥ Secret Manager
-     Stores IAM Role ARN (AWS) or Service Principal (Azure)
-     + Iceberg catalog URL
-
-⑦ BigQuery Connection
-     Lakehouse on source cloud via BigQuery Omni
-     Assumes IAM Role via OIDC federation
-
-⑧ BigQuery External Tables
-     healthcare_lakehouse.members
-     healthcare_lakehouse.claims
-
-⑨ BigQuery SQL Query
-     SELECT m.first_name, SUM(c.billed_amount)
-     FROM members m JOIN claims c ...
-     → Results returned. Oracle data never left your cloud.
-─────────────────────────────────────────────────────────────────────
-```
+| Step | Where | What happens |
+|------|-------|-------------|
+| ① | AWS / Azure | Oracle Database (EC2 or Azure VM) — source of truth: members · claims · prior_auth |
+| ② | AWS / Azure | `oracle_to_iceberg.py` (PyIceberg) — extracts rows → Parquet → Iceberg snapshots |
+| ③ | AWS / Azure | Object Storage (S3 or Azure Blob) — `healthcare/members/data.parquet` etc. |
+| ④ | AWS / Azure | Iceberg REST Catalog — schema + snapshot metadata, backed by PostgreSQL |
+| ⑤ | AWS / Azure | BigQuery Omni Compute runs **inside your VPC** — reads storage directly, never sends raw data to GCP |
+| ⑥ | Google Cloud | Secret Manager — stores IAM Role ARN (AWS) or Service Principal (Azure) + catalog URL |
+| ⑦ | Google Cloud | BigQuery Connection — assumes IAM Role via OIDC federation |
+| ⑧ | Google Cloud | BigQuery External Tables — `healthcare_lakehouse.members`, `healthcare_lakehouse.claims` |
+| ⑨ | Google Cloud | BigQuery SQL Query — results returned; Oracle data never left your cloud |
 
 > Oracle data never crosses cloud boundary · BigQuery Omni compute runs inside your VPC · Only query + aggregated results travel to GCP
 
 ---
 
 ## How No-Copy Works — What Travels vs What Stays
+
+![What Travels vs What Stays](images/what_travels_vs_stays.png)
 
 | | Traditional ETL | BigQuery Omni |
 |---|---|---|
@@ -79,6 +52,8 @@ Google Cloud                          NO raw data crosses boundary
 ---
 
 ## AWS vs Azure — BigQuery Omni Setup Differences
+
+![AWS vs Azure Setup Differences](images/aws_vs_azure_setup.png)
 
 Same architecture, different cloud primitives — the BigQuery SQL queries remain identical.
 
